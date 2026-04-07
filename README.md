@@ -1,3 +1,12 @@
+---
+title: CloudGPT-Fin Ops
+emoji: "🏆"
+colorFrom: yellow
+colorTo: yellow
+sdk: docker
+pinned: false
+---
+
 # Safe FinOps: AWS Cost Env Benchmark
 
 > *"We built an OpenEnv benchmark for safe cloud cost optimization, where agents must balance savings against infrastructure reliability and dependency constraints."*
