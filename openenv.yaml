@@ -1,0 +1,68 @@
+spec_version: 1
+name: aws-cost-env
+type: rl
+description: >
+  AWS Cloud Cost Optimization environment. An AI agent reduces infrastructure
+  monthly spend by deleting orphaned resources and rightsizing overprovisioned
+  ones without breaking system constraints or violating SLAs.
+
+runtime:
+  type: docker
+  dockerfile: Dockerfile
+
+app: server.app:app
+port: 7860
+
+tags:
+  - openenv
+  - cloud
+  - finops
+  - cost-optimization
+  - aws
+
+tasks:
+  - id: 1
+    name: easy
+    description: "3 resources. One idle VM with no dependencies. Safe deletion possible."
+  - id: 2
+    name: medium
+    description: "5 resources. Two overprovisioned non-critical instances. Resize required. Critical resources must be preserved."
+  - id: 3
+    name: hard
+    description: "8 resources. Dependency chains, misleading low-CPU critical resources, and budget traps. Multi-step reasoning required."
+
+action_space:
+  - action_type: delete
+    params: [resource_id]
+  - action_type: resize
+    params: [resource_id, new_size]
+    new_size_options: [small, medium, large]
+  - action_type: stop
+    params: [resource_id]
+  - action_type: noop
+
+observation_space:
+  type: structured_json
+  schema: AWSObservation
+
+reward:
+  type: continuous
+  range: [-1.0, 1.0]
+  formula: "step_delta_savings_ratio + action_bonus - penalty"
+  note: "Per-step delta reward. Rewards only the savings achieved by THIS action."
+
+endpoints:
+  websocket: /ws
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  health: GET /health
+  docs: GET /docs
+  web: GET /web
+
+constraints:
+  max_steps: 5
+  success_savings_threshold: 0.20
+  max_ram_gb: 8
+  max_cpu_cores: 2
+  max_inference_minutes: 20
