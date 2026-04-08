@@ -75,6 +75,19 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     )
 
 
+def map_terminal_score(state_score: Optional[str], system_failure: bool) -> float:
+    """Keep task scores strictly inside (0, 1) for every terminal outcome."""
+    if system_failure:
+        return 0.01
+    if state_score == "Excellent":
+        return 0.99
+    if state_score == "Good":
+        return 0.75
+    if state_score == "Weak":
+        return 0.25
+    return 0.01
+
+
 def build_prompt(state: dict, step_num: int) -> str:
     resources = state.get("resources", [])
     lines = [
@@ -173,22 +186,17 @@ def run_episode(client: OpenAI, task_id: int) -> None:
                 rewards.append(reward)
                 log_step(step_num, action_str, reward, done, error)
 
-                if done and not state.get("system_failure", False):
+                if done:
                     state_score = state.get("score")
-                    if state_score == "Excellent":
-                        final_score = 1.0
-                    elif state_score == "Good":
-                        final_score = 0.75
-                    elif state_score == "Weak":
-                        final_score = 0.25
-                    else:
-                        final_score = 0.0
-                    if state_score in ("Excellent", "Good"):
+                    system_failure = bool(state.get("system_failure", False))
+                    final_score = map_terminal_score(state_score, system_failure)
+                    if not system_failure and state_score in ("Excellent", "Good"):
                         success = True
 
             except Exception as exc:
                 log_step(step_num, action_str, 0.0, True, str(exc))
                 rewards.append(0.0)
+                final_score = 0.01
                 done = True
                 break
 
